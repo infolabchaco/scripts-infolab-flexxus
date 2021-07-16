@@ -1,0 +1,72 @@
+-- Create a new stored procedure called 'MTO_LISTASACTIVAS' in schema 'dbo'
+
+-- Drop the stored procedure if it already exists
+IF EXISTS (
+SELECT *
+    FROM INFORMATION_SCHEMA.ROUTINES
+WHERE SPECIFIC_SCHEMA = N'dbo'
+    AND SPECIFIC_NAME = N'MTO_LISTASACTIVAS'
+    AND ROUTINE_TYPE = N'PROCEDURE'
+)
+DROP PROCEDURE dbo.MTO_LISTASACTIVAS
+GO
+
+-- Create the stored procedure in the specified schema
+CREATE PROCEDURE dbo.MTO_LISTASACTIVAS
+    @FECHADEMODIFICACION DATETIME
+AS
+BEGIN
+    -- body of the stored procedure
+    /* 
+    ID_ARTICULO varchar(15),
+    CODIGO_PRODUCTO varchar(20),
+    LISTADEPRECIOS integer,
+    COEFICIENTE double precision,
+    PRECIO double precision,
+    FECHADESDE timestamp,
+    FECHAHASTA timestamp
+    */    
+    SELECT a.ARTICULO
+        ,CASE WHEN b.CodeBar IS NOT NULL
+            THEN b.CodeBar
+            ELSE a.ARTICULO
+        END AS CODIGO_PRODUCTO
+        ,1 AS LISTADEPRECIOS
+        ,1.0 AS COEFICIENTE
+        ,a.PRECIO_LISTA1 AS PRECIO
+    FROM FACT0007 a
+    LEFT JOIN FACT0007_CB b ON a.ARTICULO = b.ARTICULO
+    WHERE ESTADO = 'En Vigencia' AND FECHAACTPRECIOS > @FECHADEMODIFICACION
+    AND a.PRECIO_LISTA1 > 0
+    UNION 
+    SELECT a.ARTICULO
+        ,CASE WHEN b.CodeBar IS NOT NULL
+            THEN b.CodeBar
+            ELSE a.ARTICULO
+        END AS CODIGO_PRODUCTO
+        ,2 AS LISTADEPRECIOS
+        ,1.0 AS COEFICIENTE
+        ,a.PRECIO_LISTA2 AS PRECIO
+    FROM FACT0007 a
+    LEFT JOIN FACT0007_CB b ON a.ARTICULO = b.ARTICULO
+    WHERE ESTADO = 'En Vigencia' AND FECHAACTPRECIOS > @FECHADEMODIFICACION
+    AND a.PRECIO_LISTA2 > 0
+    UNION
+    SELECT a.ARTICULO
+        ,CASE WHEN b.CodeBar IS NOT NULL
+            THEN b.CodeBar
+            ELSE a.ARTICULO
+        END AS CODIGO_PRODUCTO
+        ,3 AS LISTADEPRECIOS
+        ,1.0 AS COEFICIENTE
+        ,a.PRECIO_LISTA3 AS PRECIO
+    FROM FACT0007 a
+    LEFT JOIN FACT0007_CB b ON a.ARTICULO = b.ARTICULO
+    WHERE ESTADO = 'En Vigencia' AND FECHAACTPRECIOS > @FECHADEMODIFICACION
+    AND a.PRECIO_LISTA3 > 0
+END
+GO
+
+-- example to execute the stored procedure we just created
+EXECUTE dbo.MTO_LISTASACTIVAS '01/04/2021'
+GO
